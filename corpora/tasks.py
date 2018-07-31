@@ -9,10 +9,46 @@ from invoke import task
 
 
 DATA_FOLDER = join(dirname(__file__), 'data')
+
 DOWNLOAD_FOLDER = join(DATA_FOLDER, 'download')
 FLATTEN_FOLDER = join(DATA_FOLDER, 'flatten')
+SPACE_FOLDER = join(DATA_FOLDER, 'space')
+BMES_FOLDER = join(DATA_FOLDER, 'bmes')
+FINAL_FOLDER = join(DATA_FOLDER, 'final')
 
 DATASET_KEYWORDS = ['train', 'dev', 'test']
+DATASET_CONFIG = {
+    'as': 'space',
+    'cityu': 'space',
+    'cnc': 'pos /',
+    'ctb': 'space',
+    'msr': 'space',
+    'pku': 'space',
+    'sxu': 'space',
+    'udc': 'conll',
+    'wtb': 'conll',
+    'zx': 'pos _',
+}
+
+
+def _dataset_filename(name, usage):
+    return f'{name}_{usage}.txt'
+
+
+def dataset_flatten_path(name, usage):
+    return join(FLATTEN_FOLDER, _dataset_filename(name, usage))
+
+
+def dataset_space_path(name, usage):
+    return join(SPACE_FOLDER, _dataset_filename(name, usage))
+
+
+def dataset_bmes_path(name, usage):
+    return join(BMES_FOLDER, _dataset_filename(name, usage))
+
+
+def dataset_final_path(name, usage):
+    return join(FINAL_FOLDER, _dataset_filename(name, usage))
 
 
 def init_folder(path):
@@ -63,10 +99,6 @@ def flatten_other(root):
     )
 
 
-def dataset_path(name, usage):
-    return join(FLATTEN_FOLDER, f'{name}_{usage}.txt')
-
-
 @task
 def download(c):
     init_folder(DOWNLOAD_FOLDER)
@@ -93,5 +125,5 @@ def download(c):
     ):
         for path, usage in path_usage:
             c.run(
-                f'cp {path} {dataset_path(name, usage)}'
+                f'cp {path} {dataset_flatten_path(name, usage)}'
             )
