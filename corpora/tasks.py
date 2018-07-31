@@ -4,6 +4,7 @@ from shutil import rmtree
 from glob import glob
 from collections import defaultdict
 from itertools import chain
+from functools import partial
 
 from invoke import task
 
@@ -16,18 +17,66 @@ SPACE_FOLDER = join(DATA_FOLDER, 'space')
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
 FINAL_FOLDER = join(DATA_FOLDER, 'final')
 
-DATASET_KEYWORDS = ['train', 'dev', 'test']
-DATASET_CONFIG = {
-    'as': 'space',
-    'cityu': 'space',
-    'cnc': 'pos /',
-    'ctb': 'space',
-    'msr': 'space',
-    'pku': 'space',
-    'sxu': 'space',
-    'udc': 'conll',
-    'wtb': 'conll',
-    'zx': 'pos _',
+DATASET_USAGES = ['train', 'dev', 'test']
+
+
+def split_line(line):
+    return line.strip().split()
+
+
+def join_line(components):
+    return ' '.join(components)
+
+
+def space_space(lines):
+    return list(map(
+        lambda l: join_line(split_line(l)),
+        lines,
+    ))
+
+
+def pos_space(sep, lines):
+    return list(map(
+        lambda l: join_line(map(
+            lambda component: component.split(sep)[0],
+            split_line(l),
+        )),
+        lines,
+    ))
+
+
+def conll_space(lines):
+    groups = []
+    cur = []
+    for line in lines:
+        components = split_line(line)
+        if not components:
+            assert cur
+            groups.append(join_line(cur))
+            cur = []
+        else:
+            cur.append(components[1])
+    if not cur:
+        groups.append(join_line(cur))
+
+    return groups
+
+
+# name -> fn(lines)
+# fn returns space-seperated lines (one for a sentences).
+DATASET_TO_SPACE = {
+    'as': space_space,
+    'cityu': space_space,
+    'ctb': space_space,
+    'msr': space_space,
+    'pku': space_space,
+    'sxu': space_space,
+
+    'udc': conll_space,
+    'wtb': conll_space,
+
+    'cnc': partial(pos_space, '/'),
+    'zx': partial(pos_space, '_'),
 }
 
 
@@ -66,7 +115,7 @@ def collect_dataset(folder, name_fn):
         for path in glob(join(folder, '**'), recursive=True):
             name = basename(path)
             usage = None
-            for kw in DATASET_KEYWORDS:
+            for kw in DATASET_USAGES:
                 if kw in name:
                     usage = kw
                     break
@@ -99,6 +148,17 @@ def flatten_other(root):
     )
 
 
+def read_lines(path):
+    with open(path) as fin:
+        return list(map(lambda l: l.rstrip('\n'), fin.readlines()))
+
+
+def dump_lines(path, lines):
+    print(f'Dump {path}')
+    with open(path, 'w') as fout:
+        fout.write('\n'.join(lines))
+
+
 @task
 def download(c):
     init_folder(DOWNLOAD_FOLDER)
@@ -126,4 +186,21 @@ def download(c):
         for path, usage in path_usage:
             c.run(
                 f'cp {path} {dataset_flatten_path(name, usage)}'
+            )
+
+
+@task
+def to_space(c):
+    init_folder(SPACE_FOLDER)
+
+    for name, process in DATASET_TO_SPACE.items():
+        for usage in DATASET_USAGES:
+            flatten_path = dataset_flatten_path(name, usage)
+            if not exists(flatten_path):
+                continue
+
+            lines = read_lines(flatten_path)
+            dump_lines(
+                dataset_space_path(name, usage),
+                process(lines)
             )
