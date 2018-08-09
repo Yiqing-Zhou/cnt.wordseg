@@ -167,11 +167,11 @@ def download(c):
     # download files from github.
     c.run(
         f'wget -O {join(DOWNLOAD_FOLDER, "sighan2005.tar.gz")}'
-        f' https://github.com/cnt-dev/cnt.wordseg/releases/download/corpora/sighan2005.tar.gz'
+        f' https://github.com/cnt-dev/cnt.wordseg/releases/download/corpora/sighan2005.tar.gz'  # noqa: E501
     )
     c.run(
         f'wget -O {join(DOWNLOAD_FOLDER, "other.tar.gz")}'
-        f' https://github.com/cnt-dev/cnt.wordseg/releases/download/corpora/other.tar.gz'
+        f' https://github.com/cnt-dev/cnt.wordseg/releases/download/corpora/other.tar.gz'  # noqa: E501
     )
 
     # uncompress and flatten.

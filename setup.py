@@ -5,17 +5,24 @@
 
 from setuptools import setup, find_packages
 
+
+def load_requirements(path):
+    with open(path) as fin:
+        return [
+            line
+            for line in map(lambda l: l.strip(), fin.readlines())
+            if line and not line.startswith('#')
+        ]
+
+
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
-
-setup_requirements = ['pytest-runner', ]
-
-test_requirements = ['pytest', ]
+requirements = load_requirements('requirements_prod.txt')
+test_requirements = load_requirements('requirements_dev.txt')
 
 setup(
     author="Hunt Zhan",
@@ -25,11 +32,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
@@ -41,10 +44,9 @@ setup(
     keywords='cnt_wordseg',
     name='cnt_wordseg',
     packages=find_packages(include=['cnt_wordseg']),
-    setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/huntzhan/cnt_wordseg',
+    url='https://github.com/cnt-dev/cnt_wordseg',
     version='0.1.0',
     zip_safe=False,
 )
