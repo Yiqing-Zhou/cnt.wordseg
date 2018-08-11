@@ -5,17 +5,28 @@ from glob import glob
 from collections import defaultdict
 from itertools import chain
 from functools import partial
+import random
 
 from invoke import task
+
+from cnt_wordseg.utils import (
+    break_to_sentences,
+    break_to_segments,
+    preprocess_segments,
+)
 
 
 DATA_FOLDER = join(dirname(__file__), 'data')
 
+# for download and flattening.
 DOWNLOAD_FOLDER = join(DATA_FOLDER, 'download')
 FLATTEN_FOLDER = join(DATA_FOLDER, 'flatten')
+# for converting all files to space-seperated format.
 SPACE_FOLDER = join(DATA_FOLDER, 'space')
+# for processing.
+PROCESSED_FOLDER = join(DATA_FOLDER, 'processed')
+# for final usage.
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
-FINAL_FOLDER = join(DATA_FOLDER, 'final')
 
 DATASET_USAGES = ['train', 'dev', 'test']
 
@@ -64,7 +75,7 @@ def conll_space(lines):
 
 # name -> fn(lines)
 # fn returns space-seperated lines (one for a sentences).
-DATASET_TO_SPACE = {
+DATASET_TO_SPACE_FNS = {
     'as': space_space,
     'cityu': space_space,
     'ctb': space_space,
@@ -78,6 +89,7 @@ DATASET_TO_SPACE = {
     'cnc': partial(pos_space, '/'),
     'zx': partial(pos_space, '_'),
 }
+DATASET_KEYS = list(DATASET_TO_SPACE_FNS.keys())
 
 
 def _dataset_filename(name, usage):
@@ -96,8 +108,8 @@ def dataset_bmes_path(name, usage):
     return join(BMES_FOLDER, _dataset_filename(name, usage))
 
 
-def dataset_final_path(name, usage):
-    return join(FINAL_FOLDER, _dataset_filename(name, usage))
+def dataset_processed_path(name, usage):
+    return join(PROCESSED_FOLDER, _dataset_filename(name, usage))
 
 
 def init_folder(path):
@@ -150,7 +162,10 @@ def flatten_other(root):
 
 def read_lines(path):
     with open(path) as fin:
-        return list(map(lambda l: l.rstrip('\n'), fin.readlines()))
+        return list(filter(
+            bool,
+            map(lambda l: l.rstrip('\n'), fin.readlines()),
+        ))
 
 
 def dump_lines(path, lines):
@@ -193,7 +208,7 @@ def download(c):
 def to_space(c):
     init_folder(SPACE_FOLDER)
 
-    for name, process in DATASET_TO_SPACE.items():
+    for name, process in DATASET_TO_SPACE_FNS.items():
         for usage in DATASET_USAGES:
             flatten_path = dataset_flatten_path(name, usage)
             if not exists(flatten_path):
@@ -204,3 +219,114 @@ def to_space(c):
                 dataset_space_path(name, usage),
                 process(lines)
             )
+
+
+# default mode:
+#
+# 1. use sentseg (enable_comma) to break down a sentence.
+# 2. use dlmseg to extract segments.
+# 3. deal with non-chinese chars.
+#   3.1. replace all english chars with TOKEN_EN.
+#   3.2. replace all digits with TOKEN_NUM.
+#   3.3. insert TOKEN_DLM between discontinuous segments.
+#   3.4. merge continuous special tokens.
+# 4. remove any segments that doesn't contain chinese chars.
+def default_process(line):
+    ret = []
+    for sent in break_to_sentences(line):
+        segs = preprocess_segments(
+            break_to_segments(sent),
+            gap=1,
+        )
+        if not segs:
+            continue
+        ret.append(join_line(segs))
+    return ret
+
+
+def apply_process_fn(lines, process_fn):
+    ret = []
+    for line in lines:
+        ret.extend(process_fn(line))
+    return ret
+
+
+@task
+def process(
+    c,
+    # random seed (int) for reproduction.
+    random_seed=None,
+    # merge & randomize & regenerate train/dev/test.
+    merge=True,
+    # dev/test ratio.
+    # if merge=False, test_ratio will be ignored and dev_ratio
+    # will be applied to train set if dev set doesn't exist.
+    dev_ratio=0.1, test_ratio=0.1,
+    # preprocess mode.
+    mode='default'
+):
+    # set random seed.
+    if random_seed:
+        random_seed = int(random_seed)
+    else:
+        random_seed = random.randint(0, 2**32 - 1)
+    print(f'random seed: {random_seed}')
+    random.seed(random_seed)
+
+    # clean up.
+    init_folder(PROCESSED_FOLDER)
+
+    dataset = {}
+    for name in DATASET_KEYS:
+        dataset[name] = {}
+        for usage in DATASET_USAGES:
+            path = dataset_space_path(name, usage)
+            if not exists(path):
+                dataset[name][usage] = []
+            else:
+                dataset[name][usage] = read_lines(path)
+
+    process_fn = None
+    if mode == 'default':
+        process_fn = default_process
+
+    # cases:
+    # 1. all train/dev/test exists.
+    # 2. missing dev.
+    for name in DATASET_KEYS:
+        train = apply_process_fn(dataset[name]['train'], process_fn)
+        dev = apply_process_fn(dataset[name]['dev'], process_fn)
+        test = apply_process_fn(dataset[name]['test'], process_fn)
+
+        # merge mode.
+        if merge:
+            full = train + dev + test
+            random.shuffle(full)
+
+            dev_size = int(len(full) * dev_ratio)
+            test_size = int(len(full) * test_ratio)
+
+            dev, full = full[:dev_size], full[dev_size:]
+            test, full = full[:test_size], full[test_size:]
+            train = full
+
+        else:
+            assert train and test
+            if not dev:
+                random.shuffle(train)
+                dev_size = int(len(train) * dev_ratio)
+                dev, train = train[:dev_size], train[dev_size:]
+
+        # dump.
+        dump_lines(
+            dataset_processed_path(name, 'train'),
+            train,
+        )
+        dump_lines(
+            dataset_processed_path(name, 'dev'),
+            dev,
+        )
+        dump_lines(
+            dataset_processed_path(name, 'test'),
+            test,
+        )

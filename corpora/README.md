@@ -1,3 +1,4 @@
 ```
-invoke download to-space
+inv download to-space
+inv process --random-seed <todo>
 ```
