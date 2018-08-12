@@ -8,6 +8,7 @@ from functools import partial
 import random
 
 from invoke import task
+from tqdm import tqdm
 
 from cnt_wordseg.utils import (
     break_to_sentences,
@@ -162,14 +163,12 @@ def flatten_other(root):
 
 def read_lines(path):
     with open(path) as fin:
-        return list(filter(
-            bool,
-            map(lambda l: l.rstrip('\n'), fin.readlines()),
-        ))
+        return list(map(lambda l: l.rstrip('\n'), fin.readlines()))
 
 
 def dump_lines(path, lines):
     print(f'Dump {path}')
+    lines = filter(bool, lines)
     with open(path, 'w') as fout:
         fout.write('\n'.join(lines))
 
@@ -246,7 +245,7 @@ def default_process(line):
 
 def apply_process_fn(lines, process_fn):
     ret = []
-    for line in lines:
+    for line in tqdm(lines):
         ret.extend(process_fn(line))
     return ret
 
@@ -276,6 +275,7 @@ def process(
     # clean up.
     init_folder(PROCESSED_FOLDER)
 
+    print('Loading...')
     dataset = {}
     for name in DATASET_KEYS:
         dataset[name] = {}
@@ -294,8 +294,15 @@ def process(
     # 1. all train/dev/test exists.
     # 2. missing dev.
     for name in DATASET_KEYS:
+        print(f'Processing dataset {name}')
+
+        print('train')
         train = apply_process_fn(dataset[name]['train'], process_fn)
+
+        print('dev')
         dev = apply_process_fn(dataset[name]['dev'], process_fn)
+
+        print('test')
         test = apply_process_fn(dataset[name]['test'], process_fn)
 
         # merge mode.

@@ -24,19 +24,21 @@ def preprocess_segments(segs, gap=0):
     if not segs:
         return []
 
+    text = ' '.join(select_first(segs))
+    text = replace_english_chars(text, TOKEN_EN)
+    text = replace_digits(text, TOKEN_NUM)
+    processed_texts = text.split(' ')
+    assert len(processed_texts) == len(segs)
+
     processed = []
     pre_end, _ = segs[0][1]
     pre_end -= 1
 
-    for text, (start, end) in segs:
+    for text, (_, (start, end)) in zip(processed_texts, segs):
         if start - pre_end > gap + 1:
             processed.append(TOKEN_DLM)
         pre_end = end
 
-        text = replace_english_chars(text, TOKEN_EN)
-        text = replace_digits(text, TOKEN_NUM)
         processed.append(text)
 
     return processed
-
-
