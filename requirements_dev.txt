@@ -10,5 +10,5 @@ twine==1.11.0
 pytest==3.7.1
 pytest-runner==4.2
 
-invoke==1.1.0
+invoke==1.1.1
 tqdm==4.24.0
