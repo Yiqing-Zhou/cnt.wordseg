@@ -161,6 +161,7 @@ def flatten_other(root):
 
 
 def read_lines(path):
+    print(f'Load {path}')
     with open(path) as fin:
         return list(map(lambda l: l.rstrip('\n'), fin.readlines()))
 
@@ -274,7 +275,6 @@ def process(
     # clean up.
     init_folder(PROCESSED_FOLDER)
 
-    print('Loading...')
     dataset = {}
     for name in DATASET_KEYS:
         dataset[name] = {}
@@ -392,21 +392,42 @@ def final(c, merged_name='all'):
             yield TOKEN_BMES_BREAK
 
     for usage in DATASET_USAGES:
-        merged = []
-
+        # add context tag to each dataset.
         for name in DATASET_KEYS:
             path = dataset_bmes_path(name, usage)
             assert exists(path)
 
-            print(f'Loading {path}')
             groups = split_bmes_lines(
                 read_lines(path),
                 _bmes_line(generate_token(name), 'S'),
                 _bmes_line(generate_token(name, add_slash=True), 'S'),
             )
-            merged.extend(groups)
 
-        dump_lines(
-            dataset_final_path(merged_name, usage),
-            join_groups(merged),
-        )
+            dump_lines(
+                dataset_final_path(name, usage),
+                join_groups(groups),
+            )
+
+        # merge all datasets.
+        merged_path = dataset_final_path(merged_name, usage)
+        print(f'Merging to {merged_path}')
+        with open(merged_path, 'w') as fout:
+            for name in DATASET_KEYS:
+                with open(dataset_final_path(name, usage)) as fin:
+                    for line in fin:
+                        fout.write(line)
+
+
+@task
+def clean(c, include_final=False):
+    for folder in [
+        DOWNLOAD_FOLDER,
+        FLATTEN_FOLDER,
+        SPACE_FOLDER,
+        PROCESSED_FOLDER,
+        BMES_FOLDER,
+    ]:
+        init_folder(folder)
+
+    if include_final:
+        init_folder(FINAL_FOLDER)
