@@ -5,7 +5,7 @@ from cnt_rulebase import (
     replace_digits,
 )
 
-from .const import TOKEN_DLM, TOKEN_EN, TOKEN_NUM
+from .const import TOKEN_DLM, TOKEN_EN, TOKEN_NUM, TOKEN_BMES_BREAK
 
 
 def select_first(seq):
@@ -42,3 +42,44 @@ def preprocess_segments(segs, gap=0):
         processed.append(text)
 
     return processed
+
+
+def extract_chars(text):
+    ret = []
+    idx = 0
+    while idx < len(text):
+        if text[idx] != '<':
+            ret.append(text[idx])
+            idx += 1
+
+        else:
+            end = idx + 1
+            while end < len(text) and text[end] != '>':
+                end += 1
+            assert end < len(text)
+            ret.append(text[idx:end + 1])
+            idx = end + 1
+    return ret
+
+
+def split_bmes_lines(lines, tok_prefix=None, tok_suffix=None):
+    groups = []
+
+    begin = 0
+    while begin < len(lines):
+        group = []
+        if tok_prefix:
+            group.append(tok_prefix)
+
+        end = begin
+        while end < len(lines) and lines[end] != TOKEN_BMES_BREAK:
+            group.append(lines[end])
+            end += 1
+
+        if tok_suffix:
+            group.append(tok_suffix)
+
+        groups.append(group)
+        begin = end + 1
+
+    return groups

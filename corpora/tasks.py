@@ -14,20 +14,28 @@ from cnt_wordseg.utils import (
     break_to_sentences,
     break_to_segments,
     preprocess_segments,
+    extract_chars,
+    split_bmes_lines,
+)
+from cnt_wordseg.const import (
+    generate_token,
+    TOKEN_BMES_BREAK,
 )
 
 
 DATA_FOLDER = join(dirname(__file__), 'data')
 
-# for download and flattening.
+# 1. for download and flattening.
 DOWNLOAD_FOLDER = join(DATA_FOLDER, 'download')
 FLATTEN_FOLDER = join(DATA_FOLDER, 'flatten')
-# for converting all files to space-seperated format.
+# 2. for converting all files to space-seperated format.
 SPACE_FOLDER = join(DATA_FOLDER, 'space')
-# for processing.
+# 3. for processing.
 PROCESSED_FOLDER = join(DATA_FOLDER, 'processed')
-# for final usage.
+# 4. to BMES format.
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
+# 5. final usage.
+FINAL_FOLDER = join(DATA_FOLDER, 'final')
 
 DATASET_USAGES = ['train', 'dev', 'test']
 
@@ -93,24 +101,15 @@ DATASET_TO_SPACE_FNS = {
 DATASET_KEYS = list(DATASET_TO_SPACE_FNS.keys())
 
 
-def _dataset_filename(name, usage):
-    return f'{name}_{usage}.txt'
+def create_path_generator(folder):
+    return lambda name, usage: join(folder, f'{name}_{usage}.txt')
 
 
-def dataset_flatten_path(name, usage):
-    return join(FLATTEN_FOLDER, _dataset_filename(name, usage))
-
-
-def dataset_space_path(name, usage):
-    return join(SPACE_FOLDER, _dataset_filename(name, usage))
-
-
-def dataset_bmes_path(name, usage):
-    return join(BMES_FOLDER, _dataset_filename(name, usage))
-
-
-def dataset_processed_path(name, usage):
-    return join(PROCESSED_FOLDER, _dataset_filename(name, usage))
+dataset_flatten_path = create_path_generator(FLATTEN_FOLDER)
+dataset_space_path = create_path_generator(SPACE_FOLDER)
+dataset_processed_path = create_path_generator(PROCESSED_FOLDER)
+dataset_bmes_path = create_path_generator(BMES_FOLDER)
+dataset_final_path = create_path_generator(FINAL_FOLDER)
 
 
 def init_folder(path):
@@ -336,4 +335,78 @@ def process(
         dump_lines(
             dataset_processed_path(name, 'test'),
             test,
+        )
+
+
+def _bmes_line(c, tag):
+    return f'{c}\t{tag}'
+
+
+def _bmes_lines(c, tag, lines):
+    lines.append(_bmes_line(c, tag))
+
+
+def word2bmes(word, lines):
+    chars = extract_chars(word)
+
+    if len(chars) == 1:
+        _bmes_lines(word, 'S', lines)
+        return
+
+    else:
+        _bmes_lines(chars[0], 'B', lines)
+        for c in chars[1:-1]:
+            _bmes_lines(c, 'M', lines)
+        _bmes_lines(chars[-1], 'E', lines)
+
+
+@task
+def bmes(c):
+    init_folder(BMES_FOLDER)
+
+    for name in DATASET_KEYS:
+        for usage in DATASET_USAGES:
+            path = dataset_processed_path(name, usage)
+            assert exists(path)
+
+            out = []
+            for line in read_lines(path):
+                for word in split_line(line):
+                    word2bmes(word, out)
+                out.append(TOKEN_BMES_BREAK)
+
+            dump_lines(
+                dataset_bmes_path(name, usage),
+                out,
+            )
+
+
+@task
+def final(c, merged_name='all'):
+    init_folder(FINAL_FOLDER)
+
+    def join_groups(groups):
+        for group in groups:
+            for line in group:
+                yield line
+            yield TOKEN_BMES_BREAK
+
+    for usage in DATASET_USAGES:
+        merged = []
+
+        for name in DATASET_KEYS:
+            path = dataset_bmes_path(name, usage)
+            assert exists(path)
+
+            print(f'Loading {path}')
+            groups = split_bmes_lines(
+                read_lines(path),
+                _bmes_line(generate_token(name), 'S'),
+                _bmes_line(generate_token(name, add_slash=True), 'S'),
+            )
+            merged.extend(groups)
+
+        dump_lines(
+            dataset_final_path(merged_name, usage),
+            join_groups(merged),
         )
