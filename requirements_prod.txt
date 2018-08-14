@@ -1,1 +1,2 @@
 cnt_rulebase>=0.4.0
+allennlp==0.5.1
