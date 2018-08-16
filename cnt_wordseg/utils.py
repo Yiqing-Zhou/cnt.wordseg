@@ -1,4 +1,4 @@
-from cnt_rulebase import (
+from cnt.rulebase import (
     sentseg,
     dlmseg,
     replace_english_chars,
