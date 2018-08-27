@@ -10,14 +10,14 @@ import random
 from invoke import task
 from tqdm import tqdm
 
-from cnt_wordseg.utils import (
+from cnt.wordseg.utils import (
     break_to_sentences,
     break_to_segments,
     preprocess_segments,
     extract_chars,
     split_bmes_lines,
 )
-from cnt_wordseg.const import (
+from cnt.wordseg.const import (
     generate_token,
     TOKEN_BMES_BREAK,
 )

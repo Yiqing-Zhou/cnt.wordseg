@@ -1,4 +1,4 @@
-Welcome to cnt_wordseg's documentation!
+Welcome to cnt.wordseg's documentation!
 ======================================
 
 .. toctree::

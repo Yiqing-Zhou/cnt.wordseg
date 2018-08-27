@@ -1,4 +1,4 @@
-* cnt_wordseg version:
+* cnt.wordseg version:
 * Python version:
 * Operating System:
 

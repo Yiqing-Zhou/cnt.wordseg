@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=cnt_wordseg
+set SPHINXPROJ=cnt.wordseg
 
 if "%1" == "" goto help
 

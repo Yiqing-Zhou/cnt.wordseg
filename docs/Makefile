@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
-SPHINXPROJ    = cnt_wordseg
+SPHINXPROJ    = cnt.wordseg
 SOURCEDIR     = .
 BUILDDIR      = _build
 

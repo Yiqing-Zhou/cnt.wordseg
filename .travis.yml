@@ -11,5 +11,5 @@ deploy:
     secure: GNoOW9KLMYilATckAEJBvaEdIVACsTRz2rcdjmgllxbU0wc8S8jjSh4abUWW6MssD6YzrXS2l1msTpwYmjw8PmJl4inac67aL8Z+97G06aknJpZtZUlSdrJZAefUrq7MNLkUN2NrQTrirwiRSIbBFq5AKUFB1+Diq9qd3LyTrV/MnxheXgM0wHgd1MxR5q4wNM0NQRN30fmizLuJc4PfnvNWqRq5ntbLU3rI225dGcLJ/LXhZVNpmWuqYi+65lcOs38ikiHupOMy4qYVu2sOiPJso07HZgfhgOIgXIMJcv936ODOw/ZEHLrsHPV9g7MnY/Ix6N5KFV1TnB9Q8Xhc06U7wxPrWpwqKeKHAeuc1bL5CQRv3x/UZenfRrM4HcptiR+L4/SYzwUO4lZSU8HI7FF6PJ/mX9bHhYynQKAMPUDDZTQDsIbiYdS4XIVU3KBnuTn5ibUXRfTWRXp+XjXNUQ+/4jzoiDXi8OjksKFOOmjVvurpiu9Bji2Pr+zR9g3W5MUKS8lb3GSJNoVMpDd6xocASY3cW1sHTxJkF7Gybd1u7/FH2NJ+Z6xmmGl7igtkt9zYLT9keSN986aLqNbOFIrICwWtRcvtRW165xjVBzbjz6mQMcDlnUWyD+ae3y9frDXo4CH5xp5TkjYlBENg3hng+hmXrKZ3GOMvbbcr8+4=
   on:
     tags: true
-    repo: cnt-dev/cnt_wordseg
+    repo: cnt-dev/cnt.wordseg
     python: 3.6

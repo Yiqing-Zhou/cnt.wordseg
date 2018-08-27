@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use cnt_wordseg in a project::
+To use cnt.wordseg in a project::
 
-    import cnt_wordseg
+    import cnt.wordseg
