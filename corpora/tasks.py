@@ -6,6 +6,7 @@ from collections import defaultdict
 from itertools import chain
 from functools import partial
 import random
+import json
 
 from invoke import task
 from tqdm import tqdm
@@ -34,8 +35,10 @@ SPACE_FOLDER = join(DATA_FOLDER, 'space')
 PROCESSED_FOLDER = join(DATA_FOLDER, 'processed')
 # 4. to BMES format.
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
+BMES_ALLENNLP_FOLDER = join(DATA_FOLDER, 'bmes_allennlp')
 # 5. final usage.
 FINAL_FOLDER = join(DATA_FOLDER, 'final')
+FINAL_ALLENNLP_FOLDER = join(DATA_FOLDER, 'final_allennlp')
 
 DATASET_USAGES = ['train', 'dev', 'test']
 
@@ -110,6 +113,8 @@ dataset_space_path = create_path_generator(SPACE_FOLDER)
 dataset_processed_path = create_path_generator(PROCESSED_FOLDER)
 dataset_bmes_path = create_path_generator(BMES_FOLDER)
 dataset_final_path = create_path_generator(FINAL_FOLDER)
+dataset_bmes_allennlp_path = create_path_generator(BMES_ALLENNLP_FOLDER)
+dataset_final_allennlp_path = create_path_generator(FINAL_ALLENNLP_FOLDER)
 
 
 def init_folder(path):
@@ -338,31 +343,30 @@ def process(
         )
 
 
-def _bmes_line(c, tag):
-    return f'{c}\t{tag}'
+def _bmes_line(c, tag, tag_dlm='\t'):
+    return f'{c}{tag_dlm}{tag}'
 
 
-def _bmes_lines(c, tag, lines):
-    lines.append(_bmes_line(c, tag))
+def _bmes_out(c, tag, out, tag_dlm):
+    out.append(_bmes_line(c, tag, tag_dlm))
 
 
-def word2bmes(word, lines):
+def _word2bmes(word, out, tag_dlm):
     chars = extract_chars(word)
 
     if len(chars) == 1:
-        _bmes_lines(word, 'S', lines)
+        _bmes_out(word, 'S', out, tag_dlm)
         return
 
     else:
-        _bmes_lines(chars[0], 'B', lines)
+        _bmes_out(chars[0], 'B', out, tag_dlm)
         for c in chars[1:-1]:
-            _bmes_lines(c, 'M', lines)
-        _bmes_lines(chars[-1], 'E', lines)
+            _bmes_out(c, 'M', out, tag_dlm)
+        _bmes_out(chars[-1], 'E', out, tag_dlm)
 
 
-@task
-def bmes(c):
-    init_folder(BMES_FOLDER)
+def _bmes(folder_out, path_fn, tag_dlm='\t', c_dlm=None):
+    init_folder(folder_out)
 
     for name in DATASET_KEYS:
         for usage in DATASET_USAGES:
@@ -371,14 +375,53 @@ def bmes(c):
 
             out = []
             for line in read_lines(path):
+                line_out = []
                 for word in split_line(line):
-                    word2bmes(word, out)
-                out.append(TOKEN_BMES_BREAK)
+                    _word2bmes(word, line_out, tag_dlm)
+
+                if c_dlm:
+                    line_out = [c_dlm.join(line_out)]
+                else:
+                    line_out.append(TOKEN_BMES_BREAK)
+
+                out.extend(line_out)
 
             dump_lines(
-                dataset_bmes_path(name, usage),
+                path_fn(name, usage),
                 out,
             )
+
+
+@task
+def bmes(c):
+    # [word, ...]
+    # ->
+    # c\t(B|M|E|S)\n ...
+    _bmes(
+        BMES_FOLDER, dataset_bmes_path,
+    )
+
+
+@task
+def bmes_allennlp(c):
+    # [word, ...]
+    # ->
+    # word/(B|M|E|S) ... \n
+    _bmes(
+        BMES_ALLENNLP_FOLDER, dataset_bmes_allennlp_path,
+        tag_dlm='/', c_dlm=' ',
+    )
+
+
+def _merge_files(path_fn, merged_name, usage):
+    merged_path = path_fn(merged_name, usage)
+    print(f'Merging to {merged_path}')
+
+    with open(merged_path, 'w') as fout:
+        for name in DATASET_KEYS:
+            with open(path_fn(name, usage)) as fin:
+                for line in fin:
+                    fout.write(line)
 
 
 @task
@@ -408,14 +451,37 @@ def final(c, merged_name='all'):
                 join_groups(groups),
             )
 
-        # merge all datasets.
-        merged_path = dataset_final_path(merged_name, usage)
-        print(f'Merging to {merged_path}')
-        with open(merged_path, 'w') as fout:
-            for name in DATASET_KEYS:
-                with open(dataset_final_path(name, usage)) as fin:
-                    for line in fin:
-                        fout.write(line)
+        _merge_files(dataset_final_path, merged_name, usage)
+
+
+@task
+def final_allennlp(c, merged_name='all'):
+    # line
+    # ->
+    # {"context": "{name}", "bmes_seq": "bmes_seq"}
+    init_folder(FINAL_ALLENNLP_FOLDER)
+
+    for usage in DATASET_USAGES:
+        for name in DATASET_KEYS:
+            path = dataset_bmes_allennlp_path(name, usage)
+            assert exists(path)
+
+            out = []
+            for line in read_lines(path):
+                out.append(json.dumps(
+                    {
+                        "context": generate_token(name),
+                        "bmes_seq": line,
+                    },
+                    ensure_ascii=False,
+                ))
+
+            dump_lines(
+                dataset_final_allennlp_path(name, usage),
+                out,
+            )
+
+        _merge_files(dataset_final_allennlp_path, merged_name, usage)
 
 
 @task
