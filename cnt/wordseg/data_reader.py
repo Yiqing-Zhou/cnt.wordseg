@@ -52,7 +52,12 @@ class WordSegTaggingDatasetReader(DatasetReader):
                 if not line:
                     continue
 
-                line = json.loads(line)
+                try:
+                    line = json.loads(line)
+                except:
+                    print(line)
+                    raise
+
                 context = line['context']
                 bio_seq = line['bio_seq']
 

@@ -143,8 +143,6 @@ class CntWordSeg(Model):
             embedded_context = self.dropout(embedded_context)
 
         encoded_tokens = self._tokens_seq2seq(embedded_tokens, mask)
-        if self.dropout:
-            encoded_tokens = self.dropout(encoded_tokens)
 
         # (2)
         # (batch_size, 1, context_dim) -> (batch_size, num_tokens, context_dim)

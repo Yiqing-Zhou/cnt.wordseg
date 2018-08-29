@@ -442,6 +442,8 @@ def _merge_files(path_fn, merged_name, usage):
             with open(path_fn(name, usage)) as fin:
                 for line in fin:
                     fout.write(line)
+                # add newline for each EOF.
+                fout.write('\n')
 
 
 @task
