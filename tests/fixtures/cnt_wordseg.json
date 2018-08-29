@@ -1,0 +1,55 @@
+{
+    "dataset_reader": {
+        "type": "wordseg_tagging"
+    },
+    "train_data_path": "tests/fixtures/example_data.txt",
+    "validation_data_path": "tests/fixtures/example_data.txt",
+    "model": {
+        "type": "cnt_wordseg",
+        "tokens_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 100
+                }
+            }
+        },
+        "context_embedder": {
+            "token_embedders": {
+                "contexts": {
+                    "type": "embedding",
+                    "embedding_dim": 10
+                }
+            }
+        },
+        "tokens_seq2seq": {
+            "type": "lstm",
+            "bidirectional": true,
+            "input_size": 100,
+            "hidden_size": 100,
+            "num_layers": 2,
+            "dropout": 0.2
+        },
+        "dropout": 0.1
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [
+            [
+                "tokens",
+                "num_tokens"
+            ]
+        ],
+        "padding_noise": 0.0,
+        "batch_size": 32
+    },
+    "trainer": {
+        "num_epochs": 1,
+        "cuda_device": -1,
+        "validation_metric": "+f1-measure-overall",
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.01
+        }
+    }
+}

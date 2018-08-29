@@ -19,8 +19,8 @@ DEFAULT_TOKEN_DELIMITER = ' '
 
 
 # from https://github.com/allenai/allennlp/blob/master/allennlp/data/dataset_readers/sequence_tagging.py  # noqa
-@DatasetReader.register("bmes_context_tagging")
-class BMESContextTaggingDatasetReader(DatasetReader):
+@DatasetReader.register("wordseg_tagging")
+class WordSegTaggingDatasetReader(DatasetReader):
 
     def __init__(
         self,
@@ -32,8 +32,8 @@ class BMESContextTaggingDatasetReader(DatasetReader):
     ) -> None:
 
         super().__init__(lazy)
-        self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}  # noqa
-        self._context_indexers = context_indexers or {'contexts': SingleIdTokenIndexer()}  # noqa
+        self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer(namespace='tokens')}  # noqa
+        self._context_indexers = context_indexers or {'contexts': SingleIdTokenIndexer(namespace='contexts')}  # noqa
         self._word_tag_delimiter = word_tag_delimiter
         self._token_delimiter = token_delimiter
 
@@ -54,13 +54,13 @@ class BMESContextTaggingDatasetReader(DatasetReader):
 
                 line = json.loads(line)
                 context = line['context']
-                bmes_seq = line['bmes_seq']
+                bio_seq = line['bio_seq']
 
                 context = Token(context)
 
                 tokens_and_tags = [
                     pair.rsplit(self._word_tag_delimiter, 1)
-                    for pair in bmes_seq.split(self._token_delimiter)
+                    for pair in bio_seq.split(self._token_delimiter)
                 ]
                 tokens = [Token(token) for token, tag in tokens_and_tags]
                 tags = [tag for token, tag in tokens_and_tags]

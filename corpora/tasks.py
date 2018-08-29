@@ -35,7 +35,7 @@ SPACE_FOLDER = join(DATA_FOLDER, 'space')
 PROCESSED_FOLDER = join(DATA_FOLDER, 'processed')
 # 4. to BMES format.
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
-BMES_ALLENNLP_FOLDER = join(DATA_FOLDER, 'bmes_allennlp')
+BIO_ALLENNLP_FOLDER = join(DATA_FOLDER, 'bio_allennlp')
 # 5. final usage.
 FINAL_FOLDER = join(DATA_FOLDER, 'final')
 FINAL_ALLENNLP_FOLDER = join(DATA_FOLDER, 'final_allennlp')
@@ -113,7 +113,7 @@ dataset_space_path = create_path_generator(SPACE_FOLDER)
 dataset_processed_path = create_path_generator(PROCESSED_FOLDER)
 dataset_bmes_path = create_path_generator(BMES_FOLDER)
 dataset_final_path = create_path_generator(FINAL_FOLDER)
-dataset_bmes_allennlp_path = create_path_generator(BMES_ALLENNLP_FOLDER)
+dataset_bio_allennlp_path = create_path_generator(BIO_ALLENNLP_FOLDER)
 dataset_final_allennlp_path = create_path_generator(FINAL_ALLENNLP_FOLDER)
 
 
@@ -343,29 +343,48 @@ def process(
         )
 
 
-def _bmes_line(c, tag, tag_dlm='\t'):
+def _tagging_line(c, tag, tag_dlm='\t'):
     return f'{c}{tag_dlm}{tag}'
 
 
-def _bmes_out(c, tag, out, tag_dlm):
-    out.append(_bmes_line(c, tag, tag_dlm))
+def _tagging_out(c, tag, out, tag_dlm):
+    out.append(_tagging_line(c, tag, tag_dlm))
 
 
 def _word2bmes(word, out, tag_dlm):
     chars = extract_chars(word)
 
     if len(chars) == 1:
-        _bmes_out(word, 'S', out, tag_dlm)
+        _tagging_out(word, 'S', out, tag_dlm)
         return
 
     else:
-        _bmes_out(chars[0], 'B', out, tag_dlm)
+        _tagging_out(chars[0], 'B', out, tag_dlm)
         for c in chars[1:-1]:
-            _bmes_out(c, 'M', out, tag_dlm)
-        _bmes_out(chars[-1], 'E', out, tag_dlm)
+            _tagging_out(c, 'M', out, tag_dlm)
+        _tagging_out(chars[-1], 'E', out, tag_dlm)
 
 
-def _bmes(folder_out, path_fn, tag_dlm='\t', c_dlm=None):
+def _word2bio(word, out, tag_dlm):
+    """
+    Since AllenNLP doesn't support BMES tags, we need to use BIO for tagging.
+    B -> B
+    I -> M, E
+    O -> S
+    """
+    chars = extract_chars(word)
+
+    if len(chars) == 1:
+        _tagging_out(word, 'O', out, tag_dlm)
+        return
+
+    else:
+        _tagging_out(chars[0], 'B', out, tag_dlm)
+        for c in chars[1:]:
+            _tagging_out(c, 'I', out, tag_dlm)
+
+
+def _tagging(folder_out, path_fn, tag_dlm='\t', c_dlm=None, tag_fn=_word2bmes):
     init_folder(folder_out)
 
     for name in DATASET_KEYS:
@@ -377,7 +396,7 @@ def _bmes(folder_out, path_fn, tag_dlm='\t', c_dlm=None):
             for line in read_lines(path):
                 line_out = []
                 for word in split_line(line):
-                    _word2bmes(word, line_out, tag_dlm)
+                    tag_fn(word, line_out, tag_dlm)
 
                 if c_dlm:
                     line_out = [c_dlm.join(line_out)]
@@ -397,19 +416,20 @@ def bmes(c):
     # [word, ...]
     # ->
     # c\t(B|M|E|S)\n ...
-    _bmes(
+    _tagging(
         BMES_FOLDER, dataset_bmes_path,
     )
 
 
 @task
-def bmes_allennlp(c):
+def bio_allennlp(c):
     # [word, ...]
     # ->
     # word/(B|M|E|S) ... \n
-    _bmes(
-        BMES_ALLENNLP_FOLDER, dataset_bmes_allennlp_path,
+    _tagging(
+        BIO_ALLENNLP_FOLDER, dataset_bio_allennlp_path,
         tag_dlm='/', c_dlm=' ',
+        tag_fn=_word2bio,
     )
 
 
@@ -442,8 +462,8 @@ def final(c, merged_name='all'):
 
             groups = split_bmes_lines(
                 read_lines(path),
-                _bmes_line(generate_token(name), 'S'),
-                _bmes_line(generate_token(name, add_slash=True), 'S'),
+                _tagging_line(generate_token(name), 'S'),
+                _tagging_line(generate_token(name, add_slash=True), 'S'),
             )
 
             dump_lines(
@@ -458,12 +478,12 @@ def final(c, merged_name='all'):
 def final_allennlp(c, merged_name='all'):
     # line
     # ->
-    # {"context": "{name}", "bmes_seq": "bmes_seq"}
+    # {"context": "{name}", "bio_seq": "bio_seq"}
     init_folder(FINAL_ALLENNLP_FOLDER)
 
     for usage in DATASET_USAGES:
         for name in DATASET_KEYS:
-            path = dataset_bmes_allennlp_path(name, usage)
+            path = dataset_bio_allennlp_path(name, usage)
             assert exists(path)
 
             out = []
@@ -471,7 +491,7 @@ def final_allennlp(c, merged_name='all'):
                 out.append(json.dumps(
                     {
                         "context": generate_token(name),
-                        "bmes_seq": line,
+                        "bio_seq": line,
                     },
                     ensure_ascii=False,
                 ))

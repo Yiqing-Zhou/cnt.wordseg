@@ -1,10 +1,5 @@
-{"context": "<as>", "bmes_seq": "如/B 何/E 在/S 一/S <dlm>/S 两/S 年/S 的/S 短/B 期/E 内/S 能/S 获/B 取/E 足/B 够/E 利/B 润/E 以/S 回/B 收/E 其/S 成/B 本/E"}
-{"context": "<as>", "bmes_seq": "食/B 宿/E 在/S 马/B 祖/E"}
-{"context": "<as>", "bmes_seq": "必/B 须/E 在/S 较/S 全/S 盘/S 的/S 分/B 析/E 后/S"}
-{"context": "<as>", "bmes_seq": "造/B 成/E 这/S 次/S 灾/B 情/E 严/B 重/E 的/S 原/B 因/E 是/S 由/B 于/E 印/B 度/E 大/B 多/E 是/S 泥/B 砖/M 房/E"}
-{"context": "<as>", "bmes_seq": "实/B 事/M 求/M 是/E 地/S 讨/B 论/E 研/B 究/E 题/B 目/E 与/S 解/B 决/E 问/B 题/E 的/S 习/B 惯/E"}
-{"context": "<as>", "bmes_seq": "有/S 个/S 名/B 叫/E 动/B 物/M 村/E 的/S 村/B 庄/E"}
-{"context": "<as>", "bmes_seq": "预/B 计/E 五/B 月/E 底/S 前/S 公/B 布/E 施/B 行/E"}
-{"context": "<as>", "bmes_seq": "雪/B 地/E 里/S 两/S 行/S 蹄/B 印/E 之/B 间/E"}
-{"context": "<as>", "bmes_seq": "但/S 由/B 于/E 德/B 国/M 人/E 人/B 性/E 沈/B 稳/E"}
-{"context": "<as>", "bmes_seq": "好/S 久/S"}
+{"context": "<pku>", "bio_seq": "一/O <dlm>/O 不/B 得/I 堆/B 放/I 谷/B 物/I <dlm>/O 草/B 料/I <dlm>/O 垃/B 圾/I <dlm>/O 矿/B 渣/I <dlm>/O 易/B 燃/I 物/I <dlm>/O 易/B 爆/I 物/I 及/O 其/B 他/I 影/B 响/I 安/B 全/I 供/B 电/I 的/O 物/B 品/I"}
+{"context": "<msr>", "bio_seq": "江/B 西/I 省/I <num>/B 个/I 县/O 市/O 降/B 水/I 量/I 在/O <num>/B 毫/I 米/I 以/B 上/I"}
+{"context": "<msr>", "bio_seq": "实/B 施/I 精/O 准/O 种/B 子/I 工/B 程/I"}
+{"context": "<as>", "bio_seq": "而/B 且/I 这/O 个/O 神/B 经/I 系/B 统/I"}
+{"context": "<as>", "bio_seq": "我/O 今/B 天/I 好/O 早/O 就/O 起/B 床/I 啰/O"}

@@ -1,5 +1,6 @@
+from allennlp.data import Vocabulary
 from allennlp.common.testing import AllenNlpTestCase
-from cnt.wordseg.data_reader import BMESContextTaggingDatasetReader
+from cnt.wordseg.data_reader import WordSegTaggingDatasetReader
 
 from os.path import dirname, join
 
@@ -7,14 +8,20 @@ from os.path import dirname, join
 FIXTURES_FODLER = join(dirname(__file__), 'fixtures')
 
 
-class TestBMESContextTaggingDatasetReader(AllenNlpTestCase):
+class TestWordSegTaggingDatasetReader(AllenNlpTestCase):
 
     def test_loading(self):
         path = join(FIXTURES_FODLER, 'example_data.txt')
-        reader = BMESContextTaggingDatasetReader()
+        reader = WordSegTaggingDatasetReader()
         instances = reader.read(path)
 
-        assert len(instances) == 10
+        assert len(instances) == 5
         instance0 = instances[0]
         assert len(instance0.fields['tokens'].tokens) == len(instance0.fields['tags'].labels)
         assert len(instance0.fields['context'].tokens) == 1
+
+        # vocab test.
+        vocab = Vocabulary.from_instances(instances)
+        assert vocab.get_index_to_token_vocabulary("tokens")
+        assert vocab.get_index_to_token_vocabulary("contexts")
+        assert vocab.get_index_to_token_vocabulary("labels")
