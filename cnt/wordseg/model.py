@@ -69,7 +69,11 @@ class CrfConcatEmbedder(TextFieldEmbedder):
         out: (batch_size, num_tokens, for all i concat(X_i))
         """
         # error will be raised if shapes are not matched.
-        ret = torch.cat(tuple(text_field_input.values()), dim=-1)
+        tensors = tuple(
+            t
+            for name, t in text_field_input.items() if name != 'mask'
+        )
+        ret = torch.cat(tensors, dim=-1)
         assert ret.shape[-1] == self._output_dim
         return ret
 
@@ -149,11 +153,16 @@ class CntWordSeg(Model):
         embedded_context = embedded_context.expand(
             -1, encoded_tokens.shape[1], -1,
         )
+        # apply mask.
+        embedded_context[mask] = 0.0
 
         return self._crf_tagger(
             tokens={
                 'tokens': encoded_tokens,
                 'context': embedded_context,
+                # pass mask to crf_tagger.
+                # https://github.com/allenai/allennlp/blob/1b31320a6bb8bac6eca0ab222c45fa5db6bfe515/allennlp/nn/util.py#L411  noqa
+                'mask': mask,
             },
             tags=tags,
             metadata=metadata,
