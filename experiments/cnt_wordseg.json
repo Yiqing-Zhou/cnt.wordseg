@@ -10,40 +10,40 @@
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
-                    "embedding_dim": 100
-                }
-            }
-        },
-        "context_embedder": {
-            "token_embedders": {
-                "contexts": {
-                    "type": "embedding",
-                    "embedding_dim": 50
+                    "embedding_dim": 150
                 }
             }
         },
         "tokens_seq2seq": {
             "type": "lstm",
             "bidirectional": true,
-            "input_size": 100,
-            "hidden_size": 100,
+            "input_size": 150,
+            "hidden_size": 150,
             "num_layers": 1,
-            "dropout": 0.2
+            "dropout": 0.1
+        },
+        "context_embedder": {
+            "token_embedders": {
+                "contexts": {
+                    "type": "embedding",
+                    "embedding_dim": 100
+                }
+            }
         },
         "tokens_context_crf": {
             "type": "crf_tagger",
             "label_encoding": "BMES",
             "text_field_embedder": {
                 "type": "crf_concat_embedder",
-                "output_dim": 250
+                "output_dim": 400
             },
             "encoder": {
                 "type": "lstm",
                 "bidirectional": true,
-                "input_size": 250,
-                "hidden_size": 100,
+                "input_size": 400,
+                "hidden_size": 200,
                 "num_layers": 1,
-                "dropout": 0.2
+                "dropout": 0.1
             }
         },
         "dropout": 0.1
@@ -56,7 +56,7 @@
                 "num_tokens"
             ]
         ],
-        "batch_size": 32
+        "batch_size": 64
     },
     "trainer": {
         "num_epochs": 20,
@@ -65,7 +65,7 @@
         "validation_metric": "+f1-measure-overall",
         "optimizer": {
             "type": "adam",
-            "lr": 0.001,
+            "lr": 0.005,
             "betas": [
                 0.9,
                 0.999

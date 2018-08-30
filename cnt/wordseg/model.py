@@ -108,8 +108,7 @@ class CntWordSeg(Model):
         embedded_context = embedded_context.expand(
             -1, encoded_tokens.shape[1], -1,
         )
-        # apply mask.
-        embedded_context[mask] = 0.0
+        assert embedded_context.shape[:-1] == encoded_tokens.shape[:-1]
 
         return self._crf_tagger(
             tokens={
