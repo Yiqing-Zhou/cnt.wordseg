@@ -1,0 +1,75 @@
+{
+    "dataset_reader": {
+        "type": "wordseg_tagging"
+    },
+    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_train.txt",
+    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_dev.txt",
+    "model": {
+        "type": "cnt_wordseg",
+        "tokens_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 100
+                }
+            }
+        },
+        "context_embedder": {
+            "token_embedders": {
+                "contexts": {
+                    "type": "embedding",
+                    "embedding_dim": 50
+                }
+            }
+        },
+        "tokens_seq2seq": {
+            "type": "lstm",
+            "bidirectional": true,
+            "input_size": 100,
+            "hidden_size": 100,
+            "num_layers": 1,
+            "dropout": 0.2
+        },
+        "tokens_context_crf": {
+            "type": "crf_tagger",
+            "label_encoding": "BMES",
+            "text_field_embedder": {
+                "type": "crf_concat_embedder",
+                "output_dim": 250
+            },
+            "encoder": {
+                "type": "lstm",
+                "bidirectional": true,
+                "input_size": 250,
+                "hidden_size": 100,
+                "num_layers": 1,
+                "dropout": 0.2
+            }
+        },
+        "dropout": 0.1
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [
+            [
+                "tokens",
+                "num_tokens"
+            ]
+        ],
+        "batch_size": 32
+    },
+    "trainer": {
+        "num_epochs": 20,
+        "patience": 3,
+        "cuda_device": 0,
+        "validation_metric": "+f1-measure-overall",
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.001,
+            "betas": [
+                0.9,
+                0.999
+            ]
+        }
+    }
+}
