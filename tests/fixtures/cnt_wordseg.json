@@ -18,7 +18,7 @@
             "token_embedders": {
                 "contexts": {
                     "type": "embedding",
-                    "embedding_dim": 10
+                    "embedding_dim": 20
                 }
             }
         },
@@ -29,6 +29,18 @@
             "hidden_size": 100,
             "num_layers": 2,
             "dropout": 0.2
+        },
+        "tokens_context_crf": {
+            "type": "crf_tagger",
+            "text_field_embedder": {
+                "type": "crf_concat_embedder",
+                "output_dim": 220
+            },
+            "encoder": {
+                "type": "pass_through",
+                "input_dim": 220
+            },
+            "label_encoding": "BMES"
         },
         "dropout": 0.1
     },

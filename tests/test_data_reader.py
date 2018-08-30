@@ -1,6 +1,6 @@
 from allennlp.data import Vocabulary
 from allennlp.common.testing import AllenNlpTestCase
-from cnt.wordseg.data_reader import WordSegTaggingDatasetReader
+from cnt.wordseg.data_reader import WordsegTaggingDatasetReader
 
 from os.path import dirname, join
 
@@ -8,11 +8,11 @@ from os.path import dirname, join
 FIXTURES_FODLER = join(dirname(__file__), 'fixtures')
 
 
-class TestWordSegTaggingDatasetReader(AllenNlpTestCase):
+class TestWordsegTaggingDatasetReader(AllenNlpTestCase):
 
     def test_loading(self):
         path = join(FIXTURES_FODLER, 'example_data.txt')
-        reader = WordSegTaggingDatasetReader()
+        reader = WordsegTaggingDatasetReader()
         instances = reader.read(path)
 
         assert len(instances) == 10

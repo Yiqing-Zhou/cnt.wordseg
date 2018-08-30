@@ -20,7 +20,7 @@ DEFAULT_TOKEN_DELIMITER = ' '
 
 # from https://github.com/allenai/allennlp/blob/master/allennlp/data/dataset_readers/sequence_tagging.py  # noqa
 @DatasetReader.register("wordseg_tagging")
-class WordSegTaggingDatasetReader(DatasetReader):
+class WordsegTaggingDatasetReader(DatasetReader):
 
     def __init__(
         self,

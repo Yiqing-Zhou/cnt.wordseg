@@ -54,6 +54,7 @@ class CntWordSeg(Model):
         tokens_embedder: TextFieldEmbedder,
         context_embedder: TextFieldEmbedder,
         tokens_seq2seq: Seq2SeqEncoder,
+        tokens_context_crf: Model,
         dropout: Optional[float] = None,
         initializer: InitializerApplicator = InitializerApplicator(),
         regularizer: Optional[RegularizerApplicator] = None
@@ -73,20 +74,9 @@ class CntWordSeg(Model):
 
         # (2)
         self._context_embedder = context_embedder
-
-        emission_rep_dim = (
-            self._tokens_seq2seq.get_output_dim()
-            + self._context_embedder.get_output_dim()
-        )
+        self._crf_tagger = tokens_context_crf
 
         initializer(self)
-
-        self._crf_tagger = CrfTagger(
-            vocab=vocab,
-            label_encoding='BMES',
-            text_field_embedder=CrfConcatEmbedder(emission_rep_dim),
-            encoder=PassThroughEncoder(emission_rep_dim),
-        )
 
     # copy from CrfTagger.
     def forward(
@@ -126,7 +116,10 @@ class CntWordSeg(Model):
                 'tokens': encoded_tokens,
                 'context': embedded_context,
                 # pass mask to crf_tagger.
-                # https://github.com/allenai/allennlp/blob/1b31320a6bb8bac6eca0ab222c45fa5db6bfe515/allennlp/nn/util.py#L411  noqa
+                # CrfTagger.forward.
+                # https://github.com/allenai/allennlp/blob/master/allennlp/models/crf_tagger.py#L208  noqa
+                # get_text_field_mask:
+                # https://github.com/allenai/allennlp/blob/1b31320a6bb8bac6eca0ab222c45fa5db6bfe515/allennlp/nn/util.py#L411-L412  noqa
                 'mask': mask,
             },
             tags=tags,
