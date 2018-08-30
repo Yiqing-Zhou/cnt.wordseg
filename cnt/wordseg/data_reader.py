@@ -59,13 +59,13 @@ class WordSegTaggingDatasetReader(DatasetReader):
                     raise
 
                 context = line['context']
-                bio_seq = line['bio_seq']
+                bmes_seq = line['bmes_seq']
 
                 context = Token(context)
 
                 tokens_and_tags = [
                     pair.rsplit(self._word_tag_delimiter, 1)
-                    for pair in bio_seq.split(self._token_delimiter)
+                    for pair in bmes_seq.split(self._token_delimiter)
                 ]
                 tokens = [Token(token) for token, tag in tokens_and_tags]
                 tags = [tag for token, tag in tokens_and_tags]

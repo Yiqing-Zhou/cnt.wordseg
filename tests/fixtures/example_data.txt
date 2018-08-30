@@ -1,5 +1,10 @@
-{"context": "<pku>", "bio_seq": "一/O <dlm>/O 不/B 得/I 堆/B 放/I 谷/B 物/I <dlm>/O 草/B 料/I <dlm>/O 垃/B 圾/I <dlm>/O 矿/B 渣/I <dlm>/O 易/B 燃/I 物/I <dlm>/O 易/B 爆/I 物/I 及/O 其/B 他/I 影/B 响/I 安/B 全/I 供/B 电/I 的/O 物/B 品/I"}
-{"context": "<msr>", "bio_seq": "江/B 西/I 省/I <num>/B 个/I 县/O 市/O 降/B 水/I 量/I 在/O <num>/B 毫/I 米/I 以/B 上/I"}
-{"context": "<msr>", "bio_seq": "实/B 施/I 精/O 准/O 种/B 子/I 工/B 程/I"}
-{"context": "<as>", "bio_seq": "而/B 且/I 这/O 个/O 神/B 经/I 系/B 统/I"}
-{"context": "<as>", "bio_seq": "我/O 今/B 天/I 好/O 早/O 就/O 起/B 床/I 啰/O"}
+{"context": "<as>", "bmes_seq": "他/B 们/E 唱/S"}
+{"context": "<cityu>", "bmes_seq": "即/B 使/E 在/S 欧/B 洲/E 之/B 外/E"}
+{"context": "<cnc>", "bmes_seq": "各/B 级/E 公/B 安/E 保/B 卫/E 组/B 织/E 实/B 行/E 专/B 门/E 机/B 关/E 与/S 广/B 大/E 群/B 众/E 相/S 结/B 合/E"}
+{"context": "<msr>", "bmes_seq": "随/B 着/E 社/B 会/E 生/B 产/M 力/E 的/S 日/B 益/E 发/B 展/E"}
+{"context": "<as>", "bmes_seq": "按/B 照/E 许/B 福/M 能/E 的/S 指/B 示/E"}
+{"context": "<cnc>", "bmes_seq": "设/S 分/B 别/E 记/B 为/E <en>/S <dlm>/S <en>/S"}
+{"context": "<as>", "bmes_seq": "或/S 将/S 室/S 外/S 活/B 动/E 引/B 导/M 入/E 室/S 内/S <dlm>/S 商/B 业/M 区/E 之/S 目/B 的/E"}
+{"context": "<cnc>", "bmes_seq": "在/S 市/B 长/E 家/S 作/S 家/B 庭/E 教/B 师/E 时/S"}
+{"context": "<as>", "bmes_seq": "本/B 校/E 学/B 生/M 会/E 曾/S 在/S 上/S 月/S 二/B 十/M 五/M 日/E 发/B 起/E <dlm>/S 一/B 一/M 二/M 五/E 不/S 消/B 费/E 运/B 动/E"}
+{"context": "<as>", "bmes_seq": "中/B 午/E 休/B 息/E 时/B 间/E 刚/S 过/S"}

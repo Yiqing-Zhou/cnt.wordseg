@@ -15,7 +15,7 @@ class TestWordSegTaggingDatasetReader(AllenNlpTestCase):
         reader = WordSegTaggingDatasetReader()
         instances = reader.read(path)
 
-        assert len(instances) == 5
+        assert len(instances) == 10
         instance0 = instances[0]
         assert len(instance0.fields['tokens'].tokens) == len(instance0.fields['tags'].labels)
         assert len(instance0.fields['context'].tokens) == 1

@@ -35,7 +35,7 @@ SPACE_FOLDER = join(DATA_FOLDER, 'space')
 PROCESSED_FOLDER = join(DATA_FOLDER, 'processed')
 # 4. to BMES format.
 BMES_FOLDER = join(DATA_FOLDER, 'bmes')
-BIO_ALLENNLP_FOLDER = join(DATA_FOLDER, 'bio_allennlp')
+BMES_ALLENNLP_FOLDER = join(DATA_FOLDER, 'bmes_allennlp')
 # 5. final usage.
 FINAL_FOLDER = join(DATA_FOLDER, 'final')
 FINAL_ALLENNLP_FOLDER = join(DATA_FOLDER, 'final_allennlp')
@@ -113,7 +113,7 @@ dataset_space_path = create_path_generator(SPACE_FOLDER)
 dataset_processed_path = create_path_generator(PROCESSED_FOLDER)
 dataset_bmes_path = create_path_generator(BMES_FOLDER)
 dataset_final_path = create_path_generator(FINAL_FOLDER)
-dataset_bio_allennlp_path = create_path_generator(BIO_ALLENNLP_FOLDER)
+dataset_bmes_allennlp_path = create_path_generator(BMES_ALLENNLP_FOLDER)
 dataset_final_allennlp_path = create_path_generator(FINAL_ALLENNLP_FOLDER)
 
 
@@ -422,14 +422,13 @@ def bmes(c):
 
 
 @task
-def bio_allennlp(c):
+def bmes_allennlp(c):
     # [word, ...]
     # ->
     # word/(B|M|E|S) ... \n
     _tagging(
-        BIO_ALLENNLP_FOLDER, dataset_bio_allennlp_path,
+        BMES_ALLENNLP_FOLDER, dataset_bmes_allennlp_path,
         tag_dlm='/', c_dlm=' ',
-        tag_fn=_word2bio,
     )
 
 
@@ -480,12 +479,12 @@ def final(c, merged_name='all'):
 def final_allennlp(c, merged_name='all'):
     # line
     # ->
-    # {"context": "{name}", "bio_seq": "bio_seq"}
+    # {"context": "{name}", "bmes_seq": "bmes_seq"}
     init_folder(FINAL_ALLENNLP_FOLDER)
 
     for usage in DATASET_USAGES:
         for name in DATASET_KEYS:
-            path = dataset_bio_allennlp_path(name, usage)
+            path = dataset_bmes_allennlp_path(name, usage)
             assert exists(path)
 
             out = []
@@ -493,7 +492,7 @@ def final_allennlp(c, merged_name='all'):
                 out.append(json.dumps(
                     {
                         "context": generate_token(name),
-                        "bio_seq": line,
+                        "bmes_seq": line,
                     },
                     ensure_ascii=False,
                 ))
