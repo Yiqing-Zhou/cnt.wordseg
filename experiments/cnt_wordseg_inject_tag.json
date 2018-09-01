@@ -1,0 +1,50 @@
+{
+    "dataset_reader": {
+        "type": "wordseg_tagging",
+        "inject_context": true
+    },
+    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_train.txt",
+    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_dev.txt",
+    "model": {
+        "type": "cnt_wordseg_inject_tag",
+        "tokens_context_crf": {
+            "type": "crf_tagger",
+            "label_encoding": "BMES",
+            "text_field_embedder": {
+                "token_embedders": {
+                    "tokens": {
+                        "type": "embedding",
+                        "embedding_dim": 100
+                    }
+                }
+            },
+            "encoder": {
+                "type": "lstm",
+                "bidirectional": true,
+                "input_size": 100,
+                "hidden_size": 100,
+                "num_layers": 1
+            }
+        }
+    },
+    "iterator": {
+        "type": "basic",
+        "batch_size": 32
+    },
+    "trainer": {
+        "num_epochs": 20,
+        "patience": 3,
+        "cuda_device": 0,
+        "validation_metric": "+f1-measure-overall",
+        "optimizer": {
+            "type": "sgd",
+            "lr": 0.01,
+            "momentum": 0.9
+        },
+        "learning_rate_scheduler": {
+            "type": "step",
+            "step_size": 1,
+            "gamma": 0.9
+        }
+    }
+}

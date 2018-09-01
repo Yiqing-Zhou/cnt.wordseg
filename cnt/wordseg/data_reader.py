@@ -20,12 +20,13 @@ DEFAULT_TOKEN_DELIMITER = ' '
 
 # from https://github.com/allenai/allennlp/blob/master/allennlp/data/dataset_readers/sequence_tagging.py  # noqa
 @DatasetReader.register("wordseg_tagging")
-class WordsegTaggingDatasetReader(DatasetReader):
+class WordSegTaggingDatasetReader(DatasetReader):
 
     def __init__(
         self,
         word_tag_delimiter: str = DEFAULT_WORD_TAG_DELIMITER,
         token_delimiter: str = DEFAULT_TOKEN_DELIMITER,
+        inject_context: bool = False,
         token_indexers: Dict[str, TokenIndexer] = None,
         context_indexers: Dict[str, TokenIndexer] = None,
         lazy: bool = False
@@ -34,6 +35,7 @@ class WordsegTaggingDatasetReader(DatasetReader):
         super().__init__(lazy)
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer(namespace='tokens')}  # noqa
         self._context_indexers = context_indexers or {'contexts': SingleIdTokenIndexer(namespace='contexts')}  # noqa
+        self._inject_context = inject_context
         self._word_tag_delimiter = word_tag_delimiter
         self._token_delimiter = token_delimiter
 
@@ -52,16 +54,9 @@ class WordsegTaggingDatasetReader(DatasetReader):
                 if not line:
                     continue
 
-                try:
-                    line = json.loads(line)
-                except:
-                    print(line)
-                    raise
-
+                line = json.loads(line)
                 context = line['context']
                 bmes_seq = line['bmes_seq']
-
-                context = Token(context)
 
                 tokens_and_tags = [
                     pair.rsplit(self._word_tag_delimiter, 1)
@@ -70,16 +65,41 @@ class WordsegTaggingDatasetReader(DatasetReader):
                 tokens = [Token(token) for token, tag in tokens_and_tags]
                 tags = [tag for token, tag in tokens_and_tags]
 
-                yield self.text_to_instance(context, tokens, tags)
+                if not self._inject_context:
+                    yield self.text_to_instance(
+                        tokens=tokens,
+                        context=Token(context),
+                        tags=tags,
+                    )
+                else:
+                    start_tok = context
+                    end_tok = list(context)
+                    end_tok.insert(1, '/')
+                    end_tok = ''.join(end_tok)
 
-    def text_to_instance(self, context: Token, tokens: List[Token], tags: List[str] = None) -> Instance:  # noqa type: ignore
+                    tokens.insert(0, Token(start_tok))
+                    tokens.append(Token(end_tok))
+
+                    tags.insert(0, 'S-IGN')
+                    tags.append('S-IGN')
+
+                    yield self.text_to_instance(
+                        tokens=tokens,
+                        tags=tags,
+                    )
+
+    def text_to_instance(self, tokens: List[Token], tags: List[str] = None, context: Token = None) -> Instance:  # noqa type: ignore
         """
         We take `pre-tokenized` input here, because we don't have a tokenizer in this class.
         """  # noqa
         # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
 
-        fields['context'] = TextField([context], self._context_indexers)
+        if self._inject_context:
+            assert context is None
+        else:
+            assert context
+            fields['context'] = TextField([context], self._context_indexers)
 
         sequence = TextField(tokens, self._token_indexers)
         fields["tokens"] = sequence

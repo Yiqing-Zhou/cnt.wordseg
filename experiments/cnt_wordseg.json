@@ -19,8 +19,7 @@
             "bidirectional": true,
             "input_size": 150,
             "hidden_size": 150,
-            "num_layers": 1,
-            "dropout": 0.1
+            "num_layers": 1
         },
         "context_embedder": {
             "token_embedders": {
@@ -42,21 +41,13 @@
                 "bidirectional": true,
                 "input_size": 400,
                 "hidden_size": 200,
-                "num_layers": 1,
-                "dropout": 0.1
+                "num_layers": 1
             }
-        },
-        "dropout": 0.1
+        }
     },
     "iterator": {
-        "type": "bucket",
-        "sorting_keys": [
-            [
-                "tokens",
-                "num_tokens"
-            ]
-        ],
-        "batch_size": 64
+        "type": "basic",
+        "batch_size": 32
     },
     "trainer": {
         "num_epochs": 20,
@@ -65,7 +56,7 @@
         "validation_metric": "+f1-measure-overall",
         "optimizer": {
             "type": "adam",
-            "lr": 0.005,
+            "lr": 0.001,
             "betas": [
                 0.9,
                 0.999

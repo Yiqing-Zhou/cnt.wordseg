@@ -1,8 +1,4 @@
 cnt.rulebase>=0.5.3
 
 torch>=0.4.0,<0.5.0
-
-# TODO: switch to use a new release when available.
-# Use the latest version of allennlp (with BMES support).
-# allennlp==0.6.0
--e git+https://github.com/huntzhan/allennlp.git#egg=allennlp
+allennlp==0.6.1

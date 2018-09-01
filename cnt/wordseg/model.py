@@ -5,11 +5,10 @@ import torch
 
 from allennlp.data import Vocabulary
 from allennlp.modules import Seq2SeqEncoder, TextFieldEmbedder
-from allennlp.modules.seq2seq_encoders import PassThroughEncoder
 from allennlp.models import Model
-from allennlp.models.crf_tagger import CrfTagger
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.nn import util
+from allennlp.training.metrics import SpanBasedF1Measure
 
 
 @TextFieldEmbedder.register("crf_concat_embedder")
@@ -116,11 +115,66 @@ class CntWordSeg(Model):
                 'context': embedded_context,
                 # pass mask to crf_tagger.
                 # CrfTagger.forward.
-                # https://github.com/allenai/allennlp/blob/master/allennlp/models/crf_tagger.py#L208  noqa
+                # https://github.com/allenai/allennlp/blob/master/allennlp/models/crf_tagger.py#L208
                 # get_text_field_mask:
-                # https://github.com/allenai/allennlp/blob/1b31320a6bb8bac6eca0ab222c45fa5db6bfe515/allennlp/nn/util.py#L411-L412  noqa
+                # https://github.com/allenai/allennlp/blob/1b31320a6bb8bac6eca0ab222c45fa5db6bfe515/allennlp/nn/util.py#L411-L412
                 'mask': mask,
             },
+            tags=tags,
+            metadata=metadata,
+            **kwargs,
+        )
+
+    @overrides
+    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:  # noqa
+        return self._crf_tagger.decode(output_dict=output_dict)
+
+    @overrides
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return self._crf_tagger.get_metrics(reset=reset)
+
+
+@Model.register("cnt_wordseg_inject_tag")
+class CntWordSegInjectTag(Model):
+    """
+    Multi-criteria CWS.
+    """
+
+    def __init__(
+        self,
+        vocab: Vocabulary,
+        tokens_context_crf: Model,
+        dropout: Optional[float] = None,
+        initializer: InitializerApplicator = InitializerApplicator(),
+        regularizer: Optional[RegularizerApplicator] = None
+    ) -> None:
+
+        super().__init__(vocab, regularizer)
+
+        self._crf_tagger = tokens_context_crf
+        # hack to ignore S-IGN.
+        self._crf_tagger._f1_metric = SpanBasedF1Measure(
+            vocab,
+            tag_namespace=self._crf_tagger.label_namespace,
+            label_encoding=self._crf_tagger.label_encoding,
+            ignore_classes=['IGN'],
+        )
+
+        initializer(self)
+
+    # copy from CrfTagger.
+    def forward(
+        self,
+        # (batch_size, num_tokens)
+        tokens: Dict[str, torch.LongTensor],
+        # (batch_size, num_tokens)
+        tags: torch.LongTensor = None,
+        # (batch_size, num_tokens)
+        metadata: List[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, torch.Tensor]:
+        return self._crf_tagger(
+            tokens=tokens,
             tags=tags,
             metadata=metadata,
             **kwargs,
