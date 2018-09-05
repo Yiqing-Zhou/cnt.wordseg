@@ -1,11 +1,10 @@
 {
     "dataset_reader": {
         "type": "wordseg_tagging",
-        "disable_context": true,
         "enable_bigram": true
     },
-    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_train.txt",
-    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_dev.txt",
+    "train_data_path": "tests/fixtures/example_data.txt",
+    "validation_data_path": "tests/fixtures/example_data.txt",
     "model": {
         "type": "cnt_wordseg_benchmark_google",
         "tokens_embedder": {
@@ -27,24 +26,35 @@
                 }
             }
         },
-        "tokens_embedding_dropout": 0.0,
-        "stacked_bilstm_dropout": 0.2,
-        "projection_dropout": 0.0
+        "enable_context": true,
+        "context_embedder": {
+            "token_embedders": {
+                "contexts": {
+                    "type": "embedding",
+                    "vocab_namespace": "contexts",
+                    "embedding_dim": 64
+                }
+            }
+        }
     },
     "iterator": {
-        "type": "basic",
-        "batch_size": 20
+        "type": "bucket",
+        "sorting_keys": [
+            [
+                "tokens",
+                "num_tokens"
+            ]
+        ],
+        "padding_noise": 0.0,
+        "batch_size": 32
     },
     "trainer": {
-        "num_epochs": 60,
-        "patience": 15,
-        "cuda_device": 0,
+        "num_epochs": 1,
+        "cuda_device": -1,
         "validation_metric": "-loss",
-        "grad_norm": 1.0,
         "optimizer": {
-            "type": "averaged_sgd",
-            "lr": 0.04,
-            "t0": 32000
+            "type": "adam",
+            "lr": 0.01
         }
     }
 }

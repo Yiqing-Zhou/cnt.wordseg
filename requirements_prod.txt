@@ -1,5 +1,7 @@
 cnt.rulebase>=0.5.3
 
 torch>=0.4.0,<0.5.0
-# TODO: update after >0.6.1 is released.
--e git+https://github.com/huntzhan/allennlp.git#egg=allennlp
+
+# allennlp>0.6.1
+# TODO: update after >0.6.1 is released. For now, manually run this command:
+# pip install -e git+https://github.com/huntzhan/allennlp.git#egg=allennlp

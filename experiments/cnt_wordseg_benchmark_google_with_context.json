@@ -1,11 +1,10 @@
 {
     "dataset_reader": {
         "type": "wordseg_tagging",
-        "disable_context": true,
         "enable_bigram": true
     },
-    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_train.txt",
-    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_dev.txt",
+    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_train.txt",
+    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/all_dev.txt",
     "model": {
         "type": "cnt_wordseg_benchmark_google",
         "tokens_embedder": {
@@ -27,9 +26,19 @@
                 }
             }
         },
-        "tokens_embedding_dropout": 0.0,
+        "enable_context": true,
+        "context_embedder": {
+            "token_embedders": {
+                "contexts": {
+                    "type": "embedding",
+                    "vocab_namespace": "contexts",
+                    "embedding_dim": 64
+                }
+            }
+        },
+        "tokens_embedding_dropout": 0.1,
         "stacked_bilstm_dropout": 0.2,
-        "projection_dropout": 0.0
+        "projection_dropout": 0.1
     },
     "iterator": {
         "type": "basic",

@@ -39,3 +39,15 @@ class TestCntWordSegBenchmarkGoogle(ModelTestCase):
 
     def test_model_can_train_save_and_load(self):
         self.ensure_model_can_train_save_and_load(self.param_file)
+
+
+class TestCntWordSegBenchmarkGoogleWithContext(ModelTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_model(
+            join(FIXTURES_FODLER, 'cnt_wordseg_benchmark_google_with_context.json'),
+            join(FIXTURES_FODLER, 'example_data.txt')
+        )
+
+    def test_model_can_train_save_and_load(self):
+        self.ensure_model_can_train_save_and_load(self.param_file)

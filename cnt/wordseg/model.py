@@ -273,12 +273,16 @@ class CntWordSegBenchmarkGoogle(Model):
         # char emb.
         tokens_embedder: TextFieldEmbedder,
         tokens_bigram_embedder: TextFieldEmbedder,
+        tokens_embedding_dropout: Optional[float] = 0.1,
         # lstm config.
         stacked_bilstm_hidden_size: int = 256,
         stacked_bilstm_dropout: float = 0.2,
         # projection.
         projection_dropout: float = 0.2,
         projection_activation: Optional[Activation] = None,
+        # context support.
+        enable_context: bool = False,
+        context_embedder: Optional[TextFieldEmbedder] = None,
         # misc.
         initializer: InitializerApplicator = InitializerApplicator(),
         regularizer: Optional[RegularizerApplicator] = None,
@@ -289,6 +293,11 @@ class CntWordSegBenchmarkGoogle(Model):
         # char emb.
         self.tokens_embedder = tokens_embedder
         self.tokens_bigram_embedder = tokens_bigram_embedder
+
+        if tokens_embedding_dropout:
+            self.tokens_embedding_dropout = torch.nn.Dropout(tokens_embedding_dropout)
+        else:
+            self.tokens_embedding_dropout = None
 
         # stacked bilstm.
         self.stacked_bilstm_input_size = (
@@ -315,6 +324,18 @@ class CntWordSegBenchmarkGoogle(Model):
         )
         self.lstm_bwd = PytorchSeq2SeqWrapper(self.lstm_bwd)
 
+        # projection to bmes tags.
+        self.bmes_projection_input_dim = self.stacked_bilstm_hidden_size
+
+        # context embedding. By default this one is disable for benchmark.
+        self.enable_context = enable_context
+        if self.enable_context:
+            # if context is enabled, make sure context embedder is available.
+            assert context_embedder
+            self.context_embedder = context_embedder
+            # concat context embedding to hidden states of LSTM.
+            self.bmes_projection_input_dim += self.context_embedder.get_output_dim()
+
         # output tagging.
         self.bmes_label_namespace = 'labels'
         self.bmes_projection_dropout = projection_dropout
@@ -325,7 +346,7 @@ class CntWordSegBenchmarkGoogle(Model):
             self.bmes_projection_activation = projection_activation
 
         self.bmes_projection = FeedForward(
-            input_dim=self.stacked_bilstm_hidden_size,
+            input_dim=self.bmes_projection_input_dim,
             num_layers=1,
             hidden_dims=4,
             activations=self.bmes_projection_activation,
@@ -351,6 +372,8 @@ class CntWordSegBenchmarkGoogle(Model):
         tokens: Dict[str, torch.LongTensor],
         tokens_bigram_fwd: Dict[str, torch.LongTensor],
         tokens_bigram_bwd: Dict[str, torch.LongTensor],
+        # optional context.
+        context: Optional[Dict[str, torch.LongTensor]] = None,
         # label & misc.
         tags: torch.LongTensor = None,
         metadata: List[Dict[str, Any]] = None,
@@ -365,13 +388,32 @@ class CntWordSegBenchmarkGoogle(Model):
         emb_bi_bwd = self.tokens_bigram_embedder(tokens_bigram_bwd)
 
         emb_concat = torch.cat([emb_bi_fwd, emb_uni, emb_bi_bwd], dim=-1)
+        if self.tokens_embedding_dropout:
+            emb_concat = self.tokens_embedding_dropout(emb_concat)
 
         # stacked lstm.
         fwd_output = self.lstm_fwd(emb_concat, mask)
         bwd_output = self.lstm_bwd(fwd_output, mask)
+        bmes_projection_input = bwd_output
+
+        # context.
+        if self.enable_context:
+            # (batch_size, 1).
+            assert context
+            # (batch_size, seqlen, X).
+            emb_context = self.context_embedder(context)
+
+            # expand to (batch_size, 1, X).
+            emb_context = emb_context.expand(
+                -1, seqlen, -1,
+            )
+            # concat to projection input.
+            bmes_projection_input = torch.cat(
+                [bwd_output, emb_context], dim=-1
+            )
 
         # projection.
-        bmes_prob = self.bmes_projection(bwd_output)
+        bmes_prob = self.bmes_projection(bmes_projection_input)
         bmes_tags = torch.argmax(bmes_prob, dim=-1)
 
         output = {
