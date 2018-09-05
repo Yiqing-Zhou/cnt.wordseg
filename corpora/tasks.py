@@ -21,6 +21,7 @@ from cnt.wordseg.utils import (
 from cnt.wordseg.const import (
     generate_token,
     TOKEN_BMES_BREAK,
+    TOKEN_NGRAM_PAD_BEGIN, TOKEN_NGRAM_PAD_END,
 )
 
 
@@ -235,12 +236,12 @@ def to_space(c):
 #   3.3. insert TOKEN_DLM between discontinuous segments.
 #   3.4. merge continuous special tokens.
 # 4. remove any segments that doesn't contain chinese chars.
-def default_process(line):
+def default_process(line, gap=1):
     ret = []
     for sent in break_to_sentences(line):
         segs = preprocess_segments(
             break_to_segments(sent),
-            gap=1,
+            gap=gap,
         )
         if not segs:
             continue
@@ -476,11 +477,21 @@ def final(c, merged_name='all'):
 
 
 @task
-def final_allennlp(c, merged_name='all'):
+def final_allennlp(c, merged_name='all', min_seqlen=2, max_seqlen=50, stat_out=None):
     # line
     # ->
     # {"context": "{name}", "bmes_seq": "bmes_seq"}
     init_folder(FINAL_ALLENNLP_FOLDER)
+
+    if stat_out:
+        stat_out = join(DATA_FOLDER, stat_out)
+        print(f'Writing statistics to {stat_out}')
+
+    # counting how many sents are skipped.
+    skip_distrib = defaultdict(int)
+    keep_distrib = defaultdict(int)
+    skip_cnt = defaultdict(int)
+    full_cnt = defaultdict(int)
 
     for usage in DATASET_USAGES:
         for name in DATASET_KEYS:
@@ -489,6 +500,15 @@ def final_allennlp(c, merged_name='all'):
 
             out = []
             for line in read_lines(path):
+                seqlen = line.count(' ') + 1
+
+                full_cnt[name] += 1
+                if seqlen > max_seqlen or seqlen < min_seqlen:
+                    skip_cnt[name] += 1
+                    skip_distrib[name] += seqlen
+                    continue
+
+                keep_distrib[name] += seqlen
                 out.append(json.dumps(
                     {
                         "context": generate_token(name),
@@ -503,6 +523,63 @@ def final_allennlp(c, merged_name='all'):
             )
 
         _merge_files(dataset_final_allennlp_path, merged_name, usage)
+
+    if stat_out:
+        with open(stat_out, 'w') as fout:
+            for name in DATASET_KEYS:
+                if skip_cnt[name] == 0:
+                    skip_cnt[name] = 0.00001
+
+                fout.write(f'name: {name}\n')
+                fout.write(f'full_cnt: {full_cnt[name]}\n')
+                fout.write(f'skip_cnt: {skip_cnt[name]}\n')
+                fout.write(f'skip rate: {skip_cnt[name] / full_cnt[name]}\n')
+                fout.write(f'skip avg: {skip_distrib[name] / skip_cnt[name]}\n')
+                fout.write(f'keep avg: {keep_distrib[name] / (full_cnt[name] - skip_cnt[name])}\n')
+                fout.write('\n')
+
+
+@task
+def word2vec_corpus(c, src, dst):
+    print(f'Reading {src}')
+    lines = read_lines(src)
+
+    print(f'Writing to {dst}')
+    with open(dst, 'w') as fout:
+        for line in tqdm(lines):
+            for sent in default_process(line, gap=0):
+                out = join_line(extract_chars(sent))
+                fout.write(out)
+                fout.write('\n')
+
+
+@task
+def word2vec_corpus_ngram(c, src, dst, size=2):
+    assert size > 1
+
+    def ngram(items, n):
+        ret = []
+        for end in range(0, len(items) - 1 + size):
+            start = end - size + 1
+            gram = []
+            if start < 0:
+                gram.append(TOKEN_NGRAM_PAD_BEGIN)
+                start = 0
+            for idx in range(start, min(len(items), end + 1)):
+                gram.append(items[idx])
+            if end >= len(items):
+                gram.append(TOKEN_NGRAM_PAD_END)
+            ret.append(''.join(gram))
+        return join_line(ret)
+
+    print(f'Reading {src}')
+    lines = read_lines(src)
+
+    print(f'Writing to {dst}')
+    with open(dst, 'w') as fout:
+        for line in tqdm(lines):
+            fout.write(ngram(split_line(line), ngram))
+            fout.write('\n')
 
 
 @task

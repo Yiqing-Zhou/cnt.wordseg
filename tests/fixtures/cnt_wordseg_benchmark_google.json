@@ -1,0 +1,51 @@
+{
+    "dataset_reader": {
+        "type": "wordseg_tagging",
+        "disable_context": true,
+        "enable_bigram": true
+    },
+    "train_data_path": "tests/fixtures/example_data.txt",
+    "validation_data_path": "tests/fixtures/example_data.txt",
+    "model": {
+        "type": "cnt_wordseg_benchmark_google",
+        "tokens_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 64,
+                    "pretrained_file": "/CPAI/wang2vec/data/char_emb.txt"
+                }
+            }
+        },
+        "tokens_bigram_embedder": {
+            "token_embedders": {
+                "tokens_bigram": {
+                    "type": "embedding",
+                    "vocab_namespace": "tokens_bigram",
+                    "embedding_dim": 64,
+                    "pretrained_file": "/CPAI/wang2vec/data/char_emb_bigram.txt"
+                }
+            }
+        }
+    },
+    "iterator": {
+        "type": "bucket",
+        "sorting_keys": [
+            [
+                "tokens",
+                "num_tokens"
+            ]
+        ],
+        "padding_noise": 0.0,
+        "batch_size": 32
+    },
+    "trainer": {
+        "num_epochs": 1,
+        "cuda_device": -1,
+        "validation_metric": "-loss",
+        "optimizer": {
+            "type": "adam",
+            "lr": 0.01
+        }
+    }
+}

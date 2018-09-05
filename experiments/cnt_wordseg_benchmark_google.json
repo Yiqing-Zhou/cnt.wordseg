@@ -1,0 +1,49 @@
+{
+    "dataset_reader": {
+        "type": "wordseg_tagging",
+        "disable_context": true,
+        "enable_bigram": true
+    },
+    "train_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_train.txt",
+    "validation_data_path": "/CPAI/cnt.wordseg/corpora/data/final_allennlp/msr_dev.txt",
+    "model": {
+        "type": "cnt_wordseg_benchmark_google",
+        "tokens_embedder": {
+            "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 64,
+                    "pretrained_file": "/CPAI/wang2vec/data/char_emb.txt"
+                }
+            }
+        },
+        "tokens_bigram_embedder": {
+            "token_embedders": {
+                "tokens_bigram": {
+                    "type": "embedding",
+                    "vocab_namespace": "tokens_bigram",
+                    "embedding_dim": 64,
+                    "pretrained_file": "/CPAI/wang2vec/data/char_emb_bigram.txt"
+                }
+            }
+        },
+        "stacked_bilstm_dropout": 0.2,
+        "projection_dropout": 0.0
+    },
+    "iterator": {
+        "type": "basic",
+        "batch_size": 20
+    },
+    "trainer": {
+        "num_epochs": 60,
+        "patience": 15,
+        "cuda_device": 0,
+        "validation_metric": "-loss",
+        "grad_norm": 1.0,
+        "optimizer": {
+            "type": "averaged_sgd",
+            "lr": 0.04,
+            "t0": 32000
+        }
+    }
+}

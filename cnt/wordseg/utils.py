@@ -5,7 +5,9 @@ from cnt.rulebase import (
     replace_digits,
 )
 
-from .const import TOKEN_DLM, TOKEN_EN, TOKEN_NUM, TOKEN_BMES_BREAK
+from .const import (
+    TOKEN_DLM, TOKEN_EN, TOKEN_NUM, TOKEN_BMES_BREAK,
+)
 
 
 def select_first(seq):
@@ -48,6 +50,14 @@ def extract_chars(text):
     ret = []
     idx = 0
     while idx < len(text):
+        space_mode = False
+        while text[idx].isspace():
+            space_mode = True
+            idx += 1
+        if space_mode:
+            ret.append(TOKEN_DLM)
+            continue
+
         if text[idx] != '<':
             ret.append(text[idx])
             idx += 1
