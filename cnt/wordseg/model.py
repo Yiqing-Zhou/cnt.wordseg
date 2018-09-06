@@ -277,6 +277,10 @@ class CntWordSegBenchmarkGoogle(Model):
         # lstm config.
         stacked_bilstm_hidden_size: int = 256,
         stacked_bilstm_dropout: float = 0.2,
+        # regular lstm to speed up.
+        use_regular_bilstm: bool = False,
+        regular_bilstm_hidden_size: int = 256,
+        regular_bilstm_dropout: float = 0.2,
         # projection.
         projection_dropout: float = 0.2,
         projection_activation: Optional[Activation] = None,
@@ -299,30 +303,36 @@ class CntWordSegBenchmarkGoogle(Model):
         else:
             self.tokens_embedding_dropout = None
 
-        # stacked bilstm.
-        self.stacked_bilstm_input_size = (
-            tokens_embedder.get_output_dim()
-            + tokens_bigram_embedder.get_output_dim() * 2
-        )
-        self.stacked_bilstm_hidden_size = stacked_bilstm_hidden_size
-        self.stacked_bilstm_dropout = stacked_bilstm_dropout
+        # lstm.
+        self.use_regular_bilstm = use_regular_bilstm
+        if not self.use_regular_bilstm:
+            # stacked bilstm.
+            self.stacked_bilstm_input_size = (
+                tokens_embedder.get_output_dim()
+                + tokens_bigram_embedder.get_output_dim() * 2
+            )
+            self.stacked_bilstm_hidden_size = stacked_bilstm_hidden_size
+            self.stacked_bilstm_dropout = stacked_bilstm_dropout
 
-        self.lstm_fwd = AugmentedLstm(
-            self.stacked_bilstm_input_size, self.stacked_bilstm_hidden_size,
-            go_forward=True,
-            recurrent_dropout_probability=self.stacked_bilstm_dropout,
-            use_input_projection_bias=False,
-        )
-        self.lstm_fwd = PytorchSeq2SeqWrapper(self.lstm_fwd)
+            self.lstm_fwd = AugmentedLstm(
+                self.stacked_bilstm_input_size, self.stacked_bilstm_hidden_size,
+                go_forward=True,
+                recurrent_dropout_probability=self.stacked_bilstm_dropout,
+                use_input_projection_bias=False,
+            )
+            self.lstm_fwd = PytorchSeq2SeqWrapper(self.lstm_fwd)
 
-        self.lstm_bwd = AugmentedLstm(
-            # use the hidden state from `lstm_fwd`.
-            self.stacked_bilstm_hidden_size, self.stacked_bilstm_hidden_size,
-            go_forward=False,
-            recurrent_dropout_probability=self.stacked_bilstm_dropout,
-            use_input_projection_bias=False,
-        )
-        self.lstm_bwd = PytorchSeq2SeqWrapper(self.lstm_bwd)
+            self.lstm_bwd = AugmentedLstm(
+                # use the hidden state from `lstm_fwd`.
+                self.stacked_bilstm_hidden_size, self.stacked_bilstm_hidden_size,
+                go_forward=False,
+                recurrent_dropout_probability=self.stacked_bilstm_dropout,
+                use_input_projection_bias=False,
+            )
+            self.lstm_bwd = PytorchSeq2SeqWrapper(self.lstm_bwd)
+        else:
+            # dropconnect lstm.
+            pass
 
         # projection to bmes tags.
         self.bmes_projection_input_dim = self.stacked_bilstm_hidden_size
