@@ -35,7 +35,8 @@
                     "embedding_dim": 64
                 }
             }
-        }
+        },
+        "use_regular_bilstm": true
     },
     "iterator": {
         "type": "bucket",

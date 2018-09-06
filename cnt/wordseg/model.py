@@ -17,6 +17,7 @@ from allennlp.modules.augmented_lstm import AugmentedLstm
 from allennlp.modules.seq2seq_encoders.pytorch_seq2seq_wrapper import PytorchSeq2SeqWrapper
 from allennlp.training.metrics import CategoricalAccuracy, SpanBasedF1Measure
 from allennlp.nn import Activation
+from cnt.wordseg.weight_drop_lstm import WeightDropoutLSTM
 
 
 @TextFieldEmbedder.register("crf_concat_embedder")
@@ -305,17 +306,18 @@ class CntWordSegBenchmarkGoogle(Model):
 
         # lstm.
         self.use_regular_bilstm = use_regular_bilstm
+        self.bilstm_input_size = (
+            tokens_embedder.get_output_dim()
+            + tokens_bigram_embedder.get_output_dim() * 2
+        )
         if not self.use_regular_bilstm:
             # stacked bilstm.
-            self.stacked_bilstm_input_size = (
-                tokens_embedder.get_output_dim()
-                + tokens_bigram_embedder.get_output_dim() * 2
-            )
-            self.stacked_bilstm_hidden_size = stacked_bilstm_hidden_size
+
+            self.bilstm_hidden_size = stacked_bilstm_hidden_size
             self.stacked_bilstm_dropout = stacked_bilstm_dropout
 
             self.lstm_fwd = AugmentedLstm(
-                self.stacked_bilstm_input_size, self.stacked_bilstm_hidden_size,
+                self.bilstm_input_size, self.bilstm_hidden_size,
                 go_forward=True,
                 recurrent_dropout_probability=self.stacked_bilstm_dropout,
                 use_input_projection_bias=False,
@@ -324,18 +326,29 @@ class CntWordSegBenchmarkGoogle(Model):
 
             self.lstm_bwd = AugmentedLstm(
                 # use the hidden state from `lstm_fwd`.
-                self.stacked_bilstm_hidden_size, self.stacked_bilstm_hidden_size,
+                self.bilstm_hidden_size, self.bilstm_hidden_size,
                 go_forward=False,
                 recurrent_dropout_probability=self.stacked_bilstm_dropout,
                 use_input_projection_bias=False,
             )
             self.lstm_bwd = PytorchSeq2SeqWrapper(self.lstm_bwd)
+            # projection size.
+            self.bmes_projection_input_dim = self.bilstm_hidden_size
         else:
             # dropconnect lstm.
-            pass
+            self.bilstm_hidden_size = regular_bilstm_hidden_size
+            self.regular_bilstm_dropout = regular_bilstm_dropout
 
-        # projection to bmes tags.
-        self.bmes_projection_input_dim = self.stacked_bilstm_hidden_size
+            self.regular_lstm = WeightDropoutLSTM(
+                input_size=self.bilstm_input_size,
+                hidden_size=self.bilstm_hidden_size,
+                batch_first=True,
+                bidirectional=True,
+                weight_dropout=self.regular_bilstm_dropout,
+            )
+            self.regular_lstm = PytorchSeq2SeqWrapper(self.regular_lstm)
+            # projection size.
+            self.bmes_projection_input_dim = self.bilstm_hidden_size * 2
 
         # context embedding. By default this one is disable for benchmark.
         self.enable_context = enable_context
@@ -401,10 +414,14 @@ class CntWordSegBenchmarkGoogle(Model):
         if self.tokens_embedding_dropout:
             emb_concat = self.tokens_embedding_dropout(emb_concat)
 
-        # stacked lstm.
-        fwd_output = self.lstm_fwd(emb_concat, mask)
-        bwd_output = self.lstm_bwd(fwd_output, mask)
-        bmes_projection_input = bwd_output
+        # lstm.
+        if not self.use_regular_bilstm:
+            # stacked lstm.
+            fwd_output = self.lstm_fwd(emb_concat, mask)
+            bwd_output = self.lstm_bwd(fwd_output, mask)
+            bmes_projection_input = bwd_output
+        else:
+            bmes_projection_input = self.regular_lstm(emb_concat, mask)
 
         # context.
         if self.enable_context:
@@ -419,7 +436,7 @@ class CntWordSegBenchmarkGoogle(Model):
             )
             # concat to projection input.
             bmes_projection_input = torch.cat(
-                [bwd_output, emb_context], dim=-1
+                [bmes_projection_input, emb_context], dim=-1
             )
 
         # projection.
